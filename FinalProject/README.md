@@ -1,6 +1,7 @@
 Image Management Tool
 
 OVERVIEW:
+
 The Image Management Tool is a JavaFX application designed for managing and converting images between different formats. Users can upload images, view thumbnails, display image properties, and convert images to specified formats.
 
 Features :
