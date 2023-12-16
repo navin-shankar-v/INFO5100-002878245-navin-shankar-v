@@ -32,14 +32,16 @@ public class ImageManagementTool extends Application {
     private ImageView selectedImageView;
     private ListView<String> imageListView;
     private HBox thumbnailContainer;
-
     // File Handling
     private File selectedFile;  // Added to store the uploaded file
-
+    private static ImageManagementTool instance;
     // Constructor
-    public ImageManagementTool() {
+    public static synchronized ImageManagementTool getInstance() {
+        if (instance == null) {
+            instance = new ImageManagementTool();
+        }
+        return instance;
     }
-
     // Entry point of the application
     public static void main(String[] args) {
         launch(args);
@@ -58,6 +60,17 @@ public class ImageManagementTool extends Application {
         // Set up the main scene
         Scene scene = new Scene(root, 600, 400);
         primaryStage.setScene(scene);
+
+        // Center the buttons
+        VBox centeredLayout = new VBox(root);
+        centeredLayout.setAlignment(Pos.CENTER);
+
+        // Add a heading
+        VBox mainLayout = new VBox(10);
+        mainLayout.getChildren().addAll(new javafx.scene.control.Label("Image Conversion Tool"), centeredLayout);
+
+        // Set the main scene
+        primaryStage.setScene(new Scene(mainLayout, 600, 400));
         primaryStage.show();
     }
 
@@ -83,8 +96,14 @@ public class ImageManagementTool extends Application {
         formatVBox.getChildren().addAll(formatComboBox);
         convertVBox.getChildren().add(convertButton);
 
+        // Add the VBox to the root VBox and center the buttons
         root.getChildren().addAll(uploadVBox, formatVBox, convertVBox, selectedImageView, imageListView, thumbnailContainer);
-        root.setAlignment(Pos.CENTER);
+        root.setAlignment(Pos.CENTER); // Center the buttons
+
+        // Center the buttons in their respective VBoxes
+        uploadVBox.setAlignment(Pos.CENTER);
+        formatVBox.setAlignment(Pos.CENTER);
+        convertVBox.setAlignment(Pos.CENTER);
     }
 
     // Handle image upload button click
