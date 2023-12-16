@@ -23,9 +23,6 @@ public class ImageManagementTool extends Application {
 
     // UI Components
     private VBox root;
-    private VBox uploadVBox;
-    private VBox formatVBox;
-    private VBox convertVBox;
     private Button uploadButton;
     private Button convertButton;
     private ComboBox<String> formatComboBox;
@@ -77,16 +74,17 @@ public class ImageManagementTool extends Application {
     // Initialize the user interface
     private void initializeUI() {
         root = new VBox(10);
-        uploadVBox = new VBox(10);
-        formatVBox = new VBox(10);
-        convertVBox = new VBox(10);
+        VBox uploadVBox = new VBox(10);
+        VBox formatVBox = new VBox(10);
+        VBox convertVBox = new VBox(10);
         uploadButton = new Button("Upload Image");
-        convertButton = new Button("Convert Image");
+        convertButton = new Button("Convert the Image Format");
         formatComboBox = new ComboBox<>();
         selectedImageView = new ImageView();
         imageListView = new ListView<>();
         thumbnailContainer = new HBox(10);
         formatComboBox.setPromptText("Select an Image Format");
+
 
         // Add image formats to the combo box
         formatComboBox.getItems().addAll("PNG", "JPG", "GIF", "BMP");
@@ -218,6 +216,7 @@ public class ImageManagementTool extends Application {
         alert.setContentText(errorMessage);
         alert.showAndWait();
     }
+
 
     @Override
     public void stop() throws Exception {
