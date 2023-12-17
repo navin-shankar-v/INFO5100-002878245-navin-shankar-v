@@ -11,6 +11,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
@@ -18,6 +19,8 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ImageManagementTool extends Application {
 
@@ -25,13 +28,14 @@ public class ImageManagementTool extends Application {
     private VBox root;
     private Button uploadButton;
     private Button convertButton;
+    private Button downloadButton;  // New button for downloading
     private ComboBox<String> formatComboBox;
-    private ImageView selectedImageView;
     private ListView<String> imageListView;
     private HBox thumbnailContainer;
     // File Handling
-    private File selectedFile;  // Added to store the uploaded file
+    private List<File> selectedFiles = new ArrayList<>();  // Changed to support multiple files
     private static ImageManagementTool instance;
+
     // Constructor
     public static synchronized ImageManagementTool getInstance() {
         if (instance == null) {
@@ -39,6 +43,7 @@ public class ImageManagementTool extends Application {
         }
         return instance;
     }
+
     // Entry point of the application
     public static void main(String[] args) {
         launch(args);
@@ -53,6 +58,7 @@ public class ImageManagementTool extends Application {
         // Set actions for buttons
         uploadButton.setOnAction(event -> handleImageUpload());
         convertButton.setOnAction(event -> handleConvertImage());
+        downloadButton.setOnAction(event -> handleDownloadImages());  // Set action for download button
 
         // Set up the main scene
         Scene scene = new Scene(root, 600, 400);
@@ -79,12 +85,11 @@ public class ImageManagementTool extends Application {
         VBox convertVBox = new VBox(10);
         uploadButton = new Button("Upload Image");
         convertButton = new Button("Convert the Image Format");
+        downloadButton = new Button("Download Converted Images");  // New button for downloading
         formatComboBox = new ComboBox<>();
-        selectedImageView = new ImageView();
         imageListView = new ListView<>();
         thumbnailContainer = new HBox(10);
         formatComboBox.setPromptText("Select an Image Format");
-
 
         // Add image formats to the combo box
         formatComboBox.getItems().addAll("PNG", "JPG", "GIF", "BMP");
@@ -95,13 +100,14 @@ public class ImageManagementTool extends Application {
         convertVBox.getChildren().add(convertButton);
 
         // Add the VBox to the root VBox and center the buttons
-        root.getChildren().addAll(uploadVBox, formatVBox, convertVBox, selectedImageView, imageListView, thumbnailContainer);
+        root.getChildren().addAll(uploadVBox, formatVBox, convertVBox, downloadButton, thumbnailContainer, imageListView);
         root.setAlignment(Pos.CENTER); // Center the buttons
 
         // Center the buttons in their respective VBoxes
         uploadVBox.setAlignment(Pos.CENTER);
         formatVBox.setAlignment(Pos.CENTER);
         convertVBox.setAlignment(Pos.CENTER);
+        downloadButton.setAlignment(Pos.CENTER);  // Center the download button
     }
 
     // Handle image upload button click
@@ -109,14 +115,18 @@ public class ImageManagementTool extends Application {
         FileChooser fileChooser = new FileChooser();
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
 
-        // Show file chooser dialog and get the selected file
-        selectedFile = fileChooser.showOpenDialog(null);
-        if (selectedFile != null) {
-            // Display thumbnail and image properties
-            displayThumbnail(selectedFile);
-            displayImageProperties(selectedFile);
-            // Add the selected file names to the imageListView
-            imageListView.getItems().add(selectedFile.getName());
+        // Show file chooser dialog and get the selected files
+        List<File> selectedFilesList = fileChooser.showOpenMultipleDialog(null);
+        if (selectedFilesList != null && !selectedFilesList.isEmpty()) {
+            selectedFiles.addAll(selectedFilesList);
+
+            // Display thumbnails and image properties for each uploaded image
+            for (File file : selectedFilesList) {
+                displayThumbnail(file);
+                displayImageProperties(file);
+                // Add the selected file names to the imageListView
+                imageListView.getItems().add(file.getName());
+            }
         }
     }
 
@@ -146,7 +156,9 @@ public class ImageManagementTool extends Application {
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Image Properties");
             alert.setHeaderText(null);
-            alert.setContentText("Width: " + width + "\nHeight: " + height);
+            alert.setContentText("File: " + selectedFile.getName() +
+                    "\nWidth: " + width +
+                    "\nHeight: " + height);
             alert.showAndWait();
         } catch (IOException e) {
             System.err.println("Error reading image properties: " + e.getMessage());
@@ -156,30 +168,63 @@ public class ImageManagementTool extends Application {
 
     // Handle convert image button click
     private void handleConvertImage() {
-        if (selectedFile != null) {
-            // Display the selected image in the ImageView
-            selectedImageView.setImage(new Image(selectedFile.toURI().toString()));
-
-            // Convert the image to the selected format
-            String selectedFormat = formatComboBox.getValue();
-            if (selectedFormat != null && !selectedFormat.isEmpty()) {
-                convertImage(selectedFile, selectedFormat);
+        // Handle image conversion for each selected file
+        for (File selectedFile : selectedFiles) {
+            if (selectedFile != null) {
+                // Convert the image to the selected format
+                String selectedFormat = formatComboBox.getValue();
+                if (selectedFormat != null && !selectedFormat.isEmpty()) {
+                    // No need to download immediately; handled during download
+                } else {
+                    displayConversionError("Invalid format selection.");
+                }
             } else {
-                displayConversionError("Invalid format selection.");
+                displayConversionError("Please upload an image first.");
             }
-        } else {
-            displayConversionError("Please upload an image first.");
         }
     }
 
-    // Convert the image to the specified format
-    private void convertImage(File file, String targetFormat) {
+    // Handle Download Method
+    private void handleDownloadImages() {
+        DirectoryChooser directoryChooser = new DirectoryChooser();
+        directoryChooser.setTitle("Select Destination Folder");
+
+        // Show the directory chooser dialog and get the selected folder
+        File selectedDirectory = directoryChooser.showDialog(null);
+
+        if (selectedDirectory != null) {
+            // Download the converted images to the selected folder
+            for (File selectedFile : selectedFiles) {
+                if (selectedFile != null) {
+                    // Convert the image to the selected format
+                    String selectedFormat = formatComboBox.getValue();
+                    if (selectedFormat != null && !selectedFormat.isEmpty()) {
+                        downloadConvertedImage(selectedFile, selectedFormat, selectedDirectory);
+                    } else {
+                        displayConversionError("Invalid format selection.");
+                    }
+                } else {
+                    displayConversionError("Please upload an image first.");
+                }
+            }
+
+            // Display a success message
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Download Complete");
+            alert.setHeaderText(null);
+            alert.setContentText("Images downloaded successfully to: " + selectedDirectory.getAbsolutePath());
+            alert.showAndWait();
+        }
+    }
+
+    // Convert the image to the specified format and download
+    private void downloadConvertedImage(File file, String targetFormat, File destinationFolder) {
         try {
             BufferedImage originalImage = ImageIO.read(file);
 
-            // Create a new file for the converted image
+            // Create a new file for the converted image in the destination folder
             String outputFileName = file.getName().replaceFirst("[.][^.]+$", "") + "_converted." + targetFormat.toLowerCase();
-            File outputFile = new File(file.getParent(), outputFileName);
+            File outputFile = new File(destinationFolder, outputFileName);
 
             // Check if the output file already exists
             if (outputFile.exists()) {
@@ -189,9 +234,6 @@ public class ImageManagementTool extends Application {
 
             // Write the converted image to the new file
             ImageIO.write(originalImage, targetFormat, outputFile);
-
-            // Display a success message
-            displayConversionSuccess(outputFile.getAbsolutePath());
         } catch (IOException e) {
             System.err.println("Error converting image: " + e.getMessage());
             // Display an error message
@@ -216,7 +258,6 @@ public class ImageManagementTool extends Application {
         alert.setContentText(errorMessage);
         alert.showAndWait();
     }
-
 
     @Override
     public void stop() throws Exception {
